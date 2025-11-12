@@ -6,8 +6,8 @@ const httpProxy = require('http-proxy');
 const PORT = process.env.PORT || 8080;
 const proxy = httpProxy.createProxyServer({ changeOrigin: true });
 
-// Remove headers that prevent iframe embedding
-proxy.on('proxyRes', function(proxyRes, req, res) {
+// Remove iframe-blocking headers
+proxy.on('proxyRes', (proxyRes, req, res) => {
     const headers = proxyRes.headers;
     for (let key in headers) {
         if (/x-frame-options/i.test(key) || /content-security-policy/i.test(key)) {
@@ -45,9 +45,9 @@ const server = http.createServer((req, res) => {
         }
 
         proxy.web(req, res, { target: targetUrl }, err => {
-            console.error('Proxy error:', err);
+            console.error('Proxy error:', err.message);
             res.writeHead(500);
-            res.end('Proxy error: ' + err.message);
+            res.end('This site cannot be loaded in the proxy.');
         });
 
     } catch (err) {
