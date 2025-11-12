@@ -50,9 +50,8 @@ let activeTabIndex = -1;
 
 function normalizeUrl(input) {
     input = input.trim();
-    // treat as search when no dot or contains spaces
     if (!input.includes('.') || input.includes(' ')) {
-        return 'https://html.duckduckgo.com/html/?q=' + encodeURIComponent(input);
+        return 'https://html.duckduckgo.com/q?=' + encodeURIComponent(input);
     }
     if (!input.match(/^https?:\/\//)) input = 'https://' + input;
     return input;
@@ -70,9 +69,22 @@ function createTab(url) {
 
     iframeContainer.appendChild(iframe);
 
+    // Create tab button with close '×'
     const tabBtn = document.createElement('button');
     tabBtn.className = 'tab-btn';
-    tabBtn.textContent = url;
+    const textSpan = document.createElement('span');
+    textSpan.textContent = url;
+    const closeBtn = document.createElement('span');
+    closeBtn.textContent = ' ×';
+    closeBtn.style.marginLeft = '4px';
+    closeBtn.style.cursor = 'pointer';
+    closeBtn.onclick = (e) => {
+        e.stopPropagation();
+        closeTab(tab);
+    };
+    tabBtn.appendChild(textSpan);
+    tabBtn.appendChild(closeBtn);
+
     tabBtn.onclick = () => switchTab(tabs.indexOf(tab));
     tabsBar.insertBefore(tabBtn, newTabBtn);
 
@@ -90,19 +102,5 @@ function switchTab(index) {
     homeScreen.style.display = 'none';
 }
 
-newTabBtn.onclick = () => createTab('https://html.duckduckgo.com/');
-
-goBtn.addEventListener('click', () => {
-    const url = normalizeUrl(addressBar.value);
-    if (url) createTab(url);
-});
-
-addressBar.addEventListener('keypress', e => {
-    if (e.key === 'Enter') {
-        const url = normalizeUrl(addressBar.value);
-        if (url) createTab(url);
-    }
-});
-</script>
-</body>
-</html>
+function closeTab(tab) {
+    const index = tabs.
