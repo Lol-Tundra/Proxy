@@ -59,23 +59,30 @@ const proxy = http.createServer((req, res) => {
         console.log(`Fetching: ${targetUrl}`);
 
         const backend_req = protocol.request(options, (backend_res) => {
-            // Remove headers that prevent iframe embedding
-            const headers = { ...backend_res.headers };
-            delete headers['x-frame-options'];
-            delete headers['content-security-policy'];
-            delete headers['content-security-policy-report-only'];
-            
-            // Add CORS headers to allow browser access
+            // Clone headers and remove frame-blocking headers
+            let headers = { ...backend_res.headers };
+            for (let key in headers) {
+                if (/x-frame-options/i.test(key) || /content-security-policy/i.test(key)) {
+                    delete headers[key];
+                }
+            }
+
+            // Add CORS headers
             headers['Access-Control-Allow-Origin'] = '*';
+
+            // Rewrite Location headers for redirects
+            if (headers['location']) {
+                headers['location'] = `/??url=${encodeURIComponent(headers['location'])}`;
+            }
 
             res.writeHead(backend_res.statusCode, headers);
 
-            backend_res.on('data', (chunk) => {
-                res.write(chunk);
-            });
-
+            // Capture body to remove inline CSP meta tags
+            let body = '';
+            backend_res.on('data', chunk => { body += chunk.toString(); });
             backend_res.on('end', () => {
-                res.end();
+                body = body.replace(/<meta[^>]+http-equiv=["']Content-Security-Policy["'][^>]*>/gi, '');
+                res.end(body);
             });
         });
 
