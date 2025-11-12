@@ -7,7 +7,7 @@ const PORT = process.env.PORT || 8080;
 const proxy = httpProxy.createProxyServer({ changeOrigin: true });
 
 // Remove iframe-blocking headers
-proxy.on('proxyRes', (proxyRes, req, res) => {
+proxy.on('proxyRes', (proxyRes) => {
     const headers = proxyRes.headers;
     for (let key in headers) {
         if (/x-frame-options/i.test(key) || /content-security-policy/i.test(key)) {
@@ -15,6 +15,17 @@ proxy.on('proxyRes', (proxyRes, req, res) => {
         }
     }
     headers['Access-Control-Allow-Origin'] = '*';
+});
+
+// Make proxy requests look like a real browser
+proxy.on('proxyReq', (proxyReq, req) => {
+    proxyReq.setHeader(
+        'User-Agent',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    );
+    const clientIp = req.socket && req.socket.remoteAddress;
+    if (clientIp) proxyReq.setHeader('X-Forwarded-For', clientIp);
+    proxyReq.setHeader('X-Forwarded-Host', req.headers.host || '');
 });
 
 const server = http.createServer((req, res) => {
