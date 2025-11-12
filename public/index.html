@@ -54,10 +54,9 @@ let activeTabIndex = -1;
 
 function normalizeUrl(input) {
     input = input.trim();
-    if (!input.includes('.') || input.includes(' ')) {
-        return 'https://html.duckduckgo.com/?q=' + encodeURIComponent(input);
+    if (!input.match(/^https?:\/\//)) {
+        input = 'https://www.google.com/search?q=' + encodeURIComponent(input);
     }
-    if (!input.match(/^https?:\/\//)) input = 'https://' + input;
     return input;
 }
 
@@ -140,7 +139,7 @@ function navigateCurrentTab(url) {
     updateNavButtons();
 }
 
-newTabBtn.onclick = () => createTab('https://html.duckduckgo.com/');
+newTabBtn.onclick = () => createTab('https://www.google.com');
 
 goBtn.addEventListener('click', () => {
     const url = normalizeUrl(addressBar.value);
