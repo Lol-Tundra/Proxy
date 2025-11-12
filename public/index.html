@@ -25,7 +25,7 @@ body { margin:0; font-family:sans-serif; }
         <button id="goBtn" class="go-btn">Go</button>
     </div>
     <div class="tabs-bar" id="tabsBar"></div>
-    <div class="iframe-container">
+    <div class="iframe-container" id="iframeContainer">
         <div class="home-screen" id="homeScreen">
             <div>🌐 Enter a URL to get started</div>
         </div>
@@ -36,7 +36,7 @@ body { margin:0; font-family:sans-serif; }
 const addressBar = document.getElementById('addressBar');
 const goBtn = document.getElementById('goBtn');
 const tabsBar = document.getElementById('tabsBar');
-const iframeContainer = document.querySelector('.iframe-container');
+const iframeContainer = document.getElementById('iframeContainer');
 const homeScreen = document.getElementById('homeScreen');
 
 let tabs = [];
@@ -54,7 +54,14 @@ function normalizeUrl(input) {
 function createTab(url) {
     const iframe = document.createElement('iframe');
     iframe.className = 'proxy-iframe';
-    iframe.src = url;
+    iframe.src = '/?url=' + encodeURIComponent(url);
+
+    // Error handling for blocked sites
+    iframe.onerror = () => {
+        iframe.style.display = 'none';
+        alert('This site cannot be loaded in the proxy.');
+    };
+
     iframeContainer.appendChild(iframe);
 
     const tabBtn = document.createElement('button');
