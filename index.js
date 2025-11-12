@@ -6,7 +6,7 @@ const httpProxy = require('http-proxy');
 const PORT = process.env.PORT || 8080;
 const proxy = httpProxy.createProxyServer({ changeOrigin: true });
 
-// Remove headers that block iframe embedding
+// Remove headers that prevent iframe embedding
 proxy.on('proxyRes', function(proxyRes, req, res) {
     const headers = proxyRes.headers;
     for (let key in headers) {
@@ -48,24 +48,6 @@ const server = http.createServer((req, res) => {
             console.error('Proxy error:', err);
             res.writeHead(500);
             res.end('Proxy error: ' + err.message);
-        });
-
-        // Optional: rewrite <a href> links to homepage
-        proxy.on('proxyRes', function(proxyRes, req, res) {
-            let body = '';
-            proxyRes.on('data', chunk => body += chunk.toString());
-            proxyRes.on('end', () => {
-                try {
-                    const targetDomain = new URL(targetUrl).origin;
-                    body = body.replace(
-                        /<a\s+[^>]*href=["']([^"']+)["']/gi,
-                        (match) => match.replace(/href=["'][^"']+["']/, `href="${targetDomain}"`)
-                    );
-                    res.end(body);
-                } catch (e) {
-                    res.end(body);
-                }
-            });
         });
 
     } catch (err) {
