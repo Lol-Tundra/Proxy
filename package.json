@@ -1,7 +1,7 @@
 {
   "name": "web-proxy",
   "version": "1.0.0",
-  "description": "Full-featured web proxy using node-http-proxy",
+  "description": "Full-featured web proxy with tabs and search",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
