@@ -1,7 +1,7 @@
 {
   "name": "web-proxy",
   "version": "1.0.0",
-  "description": "Proxy browser with Chrome-like UI and DuckDuckGo search",
+  "description": "Proxy browser with Chrome-style tabs and DuckDuckGo search",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
