@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Proxy Browser</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f1f3f4;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .browser-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background: white;
+        }
+
+        .browser-header {
+            background: #fff;
+            border-bottom: 1px solid #dadce0;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 4px;
+        }
+
+        .nav-btn {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: transparent;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #5f6368;
+            font-size: 20px;
+            transition: background 0.2s;
+        }
+
+        .nav-btn:hover {
+            background: #f1f3f4;
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .address-bar-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            background: #f1f3f4;
+            border-radius: 24px;
+            padding: 0 16px;
+            height: 40px;
+        }
+
+        .lock-icon {
+            color: #5f6368;
+            margin-right: 8px;
+            font-size: 16px;
+        }
+
+        .address-bar {
+            flex: 1;
+            border: none;
+            background: transparent;
+            font-size: 14px;
+            outline: none;
+            color: #202124;
+        }
+
+        .go-btn {
+            background: #1a73e8;
+            color: white;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 4px;
+            margin-left: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .go-btn:hover {
+            background: #1765cc;
+        }
+
+        .iframe-container {
+            flex: 1;
+            position: relative;
+            background: white;
+            overflow: hidden;
+        }
+
+        .proxy-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .loading {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: #1a73e8;
+            transform: scaleX(0);
+            transform-origin: left;
+            animation: loading 2s ease-in-out;
+        }
+
+        @keyframes loading {
+            0% { transform: scaleX(0); }
+            50% { transform: scaleX(0.7); }
+            100% { transform: scaleX(1); }
+        }
+
+        .home-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #5f6368;
+        }
+
+        .home-icon {
+            font-size: 64px;
+            margin-bottom: 24px;
+            color: #dadce0;
+        }
+
+        .home-text {
+            font-size: 18px;
+            margin-bottom: 16px;
+        }
+
+        .quick-links {
+            display: flex;
+            gap: 16px;
+            margin-top: 24px;
+        }
+
+        .quick-link {
+            padding: 8px 16px;
+            background: #f1f3f4;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #1a73e8;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .quick-link:hover {
+            background: #e8eaed;
+        }
+    </style>
+</head>
+<body>
+    <div class="browser-container">
+        <div class="browser-header">
+            <div class="nav-buttons">
+                <button class="nav-btn" id="backBtn" disabled title="Back">←</button>
+                <button class="nav-btn" id="forwardBtn" disabled title="Forward">→</button>
+                <button class="nav-btn" id="refreshBtn" title="Refresh">↻</button>
+            </div>
+            
+            <div class="address-bar-container">
+                <span class="lock-icon">🔒</span>
+                <input 
+                    type="text" 
+                    class="address-bar" 
+                    id="addressBar" 
+                    placeholder="Enter URL or search"
+                    autocomplete="off"
+                />
+                <button class="go-btn" id="goBtn">Go</button>
+            </div>
+        </div>
+
+        <div class="iframe-container">
+            <div class="loading" id="loadingBar" style="display: none;"></div>
+            <div class="home-screen" id="homeScreen">
+                <div class="home-icon">🌐</div>
+                <div class="home-text">Enter a URL to get started</div>
+                <div class="quick-links">
+                    <a href="#" class="quick-link" data-url="https://example.com">Example</a>
+                    <a href="#" class="quick-link" data-url="https://wikipedia.org">Wikipedia</a>
+                    <a href="#" class="quick-link" data-url="https://github.com">GitHub</a>
+                </div>
+            </div>
+            <iframe class="proxy-iframe" id="proxyFrame" style="display: none;"></iframe>
+        </div>
+    </div>
+
+    <script>
+        const addressBar = document.getElementById('addressBar');
+        const goBtn = document.getElementById('goBtn');
+        const proxyFrame = document.getElementById('proxyFrame');
+        const homeScreen = document.getElementById('homeScreen');
+        const loadingBar = document.getElementById('loadingBar');
+        const backBtn = document.getElementById('backBtn');
+        const forwardBtn = document.getElementById('forwardBtn');
+        const refreshBtn = document.getElementById('refreshBtn');
+
+        let history = [];
+        let historyIndex = -1;
+        let currentUrl = '';
+
+        function normalizeUrl(input) {
+            input = input.trim();
+            
+            // If it looks like a search query (no dots or spaces), don't add http
+            if (!input.includes('.') || input.includes(' ')) {
+                return input;
+            }
+            
+            // Add https:// if no protocol specified
+            if (!input.match(/^https?:\/\//)) {
+                input = 'https://' + input;
+            }
+            
+            return input;
+        }
+
+        function loadUrl(targetUrl) {
+            targetUrl = normalizeUrl(targetUrl);
+            
+            // Show loading
+            loadingBar.style.display = 'block';
+            loadingBar.style.animation = 'none';
+            setTimeout(() => {
+                loadingBar.style.animation = 'loading 2s ease-in-out';
+            }, 10);
+
+            // Update address bar
+            addressBar.value = targetUrl;
+            currentUrl = targetUrl;
+
+            // Add to history
+            if (historyIndex < history.length - 1) {
+                history = history.slice(0, historyIndex + 1);
+            }
+            history.push(targetUrl);
+            historyIndex = history.length - 1;
+            updateNavButtons();
+
+            // Load in iframe via proxy
+            const proxyUrl = `/?url=${encodeURIComponent(targetUrl)}`;
+            proxyFrame.src = proxyUrl;
+            
+            // Show iframe, hide home screen
+            homeScreen.style.display = 'none';
+            proxyFrame.style.display = 'block';
+
+            // Hide loading bar after a delay
+            setTimeout(() => {
+                loadingBar.style.display = 'none';
+            }, 2000);
+        }
+
+        function updateNavButtons() {
+            backBtn.disabled = historyIndex <= 0;
+            forwardBtn.disabled = historyIndex >= history.length - 1;
+        }
+
+        goBtn.addEventListener('click', () => {
+            const url = addressBar.value;
+            if (url) loadUrl(url);
+        });
+
+        addressBar.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const url = addressBar.value;
+                if (url) loadUrl(url);
+            }
+        });
+
+        backBtn.addEventListener('click', () => {
+            if (historyIndex > 0) {
+                historyIndex--;
+                loadUrl(history[historyIndex]);
+            }
+        });
+
+        forwardBtn.addEventListener('click', () => {
+            if (historyIndex < history.length - 1) {
+                historyIndex++;
+                loadUrl(history[historyIndex]);
+            }
+        });
+
+        refreshBtn.addEventListener('click', () => {
+            if (currentUrl) {
+                proxyFrame.src = `/?url=${encodeURIComponent(currentUrl)}`;
+            }
+        });
+
+        // Quick links
+        document.querySelectorAll('.quick-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const url = e.target.getAttribute('data-url');
+                loadUrl(url);
+            });
+        });
+
+        // Focus address bar on load
+        addressBar.focus();
+    </script>
+</body>
+</html>
+```
+
+## **Folder Structure**
+Your project should look like this:
+```
+your-project-folder/
+├── index.js          (the updated server code from artifact)
+├── package.json      (the package.json above)
+└── public/
+    └── index.html    (the HTML file above)
