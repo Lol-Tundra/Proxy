@@ -56,7 +56,7 @@ function normalizeUrl(input) {
     input = input.trim();
     // If search query
     if (!input.includes('.') || input.includes(' ')) {
-        return 'https://html.duckduckgo.com/' + encodeURIComponent(input);
+        return 'https://html.duckduckgo.com/html/' + encodeURIComponent(input);
     }
     if (!input.match(/^https?:\/\//)) input = 'https://' + input;
     return input;
