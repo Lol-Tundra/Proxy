@@ -50,8 +50,9 @@ let activeTabIndex = -1;
 
 function normalizeUrl(input) {
     input = input.trim();
+    // treat as search when no dot or contains spaces
     if (!input.includes('.') || input.includes(' ')) {
-        return 'https://www.google.com/search?q=' + encodeURIComponent(input);
+        return 'https://html.duckduckgo.com/html/?q=' + encodeURIComponent(input);
     }
     if (!input.match(/^https?:\/\//)) input = 'https://' + input;
     return input;
@@ -72,10 +73,11 @@ function createTab(url) {
     const tabBtn = document.createElement('button');
     tabBtn.className = 'tab-btn';
     tabBtn.textContent = url;
-    tabBtn.onclick = () => switchTab(tabs.length);
+    tabBtn.onclick = () => switchTab(tabs.indexOf(tab));
     tabsBar.insertBefore(tabBtn, newTabBtn);
 
-    tabs.push({ url, iframe, tabBtn });
+    const tab = { url, iframe, tabBtn };
+    tabs.push(tab);
     switchTab(tabs.length - 1);
 }
 
@@ -88,10 +90,7 @@ function switchTab(index) {
     homeScreen.style.display = 'none';
 }
 
-newTabBtn.onclick = () => {
-    const url = normalizeUrl(''); // opens Google home
-    createTab(url);
-};
+newTabBtn.onclick = () => createTab('https://html.duckduckgo.com/');
 
 goBtn.addEventListener('click', () => {
     const url = normalizeUrl(addressBar.value);
