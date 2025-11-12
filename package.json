@@ -1,0 +1,15 @@
+{
+  "name": "web-proxy",
+  "version": "1.0.0",
+  "description": "Simple web proxy server",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "keywords": ["proxy", "web"],
+  "author": "",
+  "license": "MIT"
+}
