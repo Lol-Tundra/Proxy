@@ -11,6 +11,8 @@ body { margin:0; font-family:sans-serif; }
 .address-bar { flex:1; padding:6px 8px; border-radius:4px; border:1px solid #ccc; font-size:14px; }
 .go-btn { padding:6px 12px; cursor:pointer; border:none; border-radius:4px; background:#1a73e8; color:#fff; font-weight:500; }
 .go-btn:hover { background:#1765cc; }
+.nav-btn { padding:6px 10px; cursor:pointer; border:none; border-radius:4px; background:#e0e0e0; margin-right:2px; }
+.nav-btn:hover { background:#d2d2d2; }
 .tabs-bar { display:flex; align-items:center; padding:4px; background:#e8eaed; overflow-x:auto; }
 .tab-btn { padding:6px 12px; margin-right:2px; border-radius:8px 8px 0 0; border:1px solid #ccc; border-bottom:none; background:#e8eaed; cursor:pointer; white-space:nowrap; font-weight:500; }
 .tab-btn.active { background:#fff; border-bottom:1px solid #fff; }
@@ -24,6 +26,8 @@ body { margin:0; font-family:sans-serif; }
 <body>
 <div class="browser-container">
     <div class="browser-header">
+        <button id="backBtn" class="nav-btn" disabled>←</button>
+        <button id="forwardBtn" class="nav-btn" disabled>→</button>
         <input type="text" id="addressBar" class="address-bar" placeholder="Enter URL or search term">
         <button id="goBtn" class="go-btn">Go</button>
     </div>
@@ -31,9 +35,7 @@ body { margin:0; font-family:sans-serif; }
         <button id="newTabBtn" class="tab-btn">+</button>
     </div>
     <div class="iframe-container" id="iframeContainer">
-        <div class="home-screen" id="homeScreen">
-            <div>🌐 Enter a URL to get started</div>
-        </div>
+        <div class="home-screen" id="homeScreen">🌐 Enter a URL to get started</div>
     </div>
 </div>
 
@@ -44,14 +46,17 @@ const tabsBar = document.getElementById('tabsBar');
 const iframeContainer = document.getElementById('iframeContainer');
 const homeScreen = document.getElementById('homeScreen');
 const newTabBtn = document.getElementById('newTabBtn');
+const backBtn = document.getElementById('backBtn');
+const forwardBtn = document.getElementById('forwardBtn');
 
 let tabs = [];
 let activeTabIndex = -1;
 
 function normalizeUrl(input) {
     input = input.trim();
+    // If search query
     if (!input.includes('.') || input.includes(' ')) {
-        return 'https://html.duckduckgo.com/q?=' + encodeURIComponent(input);
+        return 'https://html.duckduckgo.com/' + encodeURIComponent(input);
     }
     if (!input.match(/^https?:\/\//)) input = 'https://' + input;
     return input;
@@ -61,15 +66,11 @@ function createTab(url) {
     const iframe = document.createElement('iframe');
     iframe.className = 'proxy-iframe';
     iframe.src = '/?url=' + encodeURIComponent(url);
-
-    iframe.onerror = () => {
-        iframe.style.display = 'none';
-        alert('This site cannot be loaded in the proxy.');
-    };
+    iframe.dataset.history = JSON.stringify([url]);
+    iframe.dataset.index = '0';
 
     iframeContainer.appendChild(iframe);
 
-    // Create tab button with close '×'
     const tabBtn = document.createElement('button');
     tabBtn.className = 'tab-btn';
     const textSpan = document.createElement('span');
@@ -78,17 +79,14 @@ function createTab(url) {
     closeBtn.textContent = ' ×';
     closeBtn.style.marginLeft = '4px';
     closeBtn.style.cursor = 'pointer';
-    closeBtn.onclick = (e) => {
-        e.stopPropagation();
-        closeTab(tab);
-    };
+    closeBtn.onclick = (e) => { e.stopPropagation(); closeTab(tab); };
     tabBtn.appendChild(textSpan);
     tabBtn.appendChild(closeBtn);
-
     tabBtn.onclick = () => switchTab(tabs.indexOf(tab));
+
     tabsBar.insertBefore(tabBtn, newTabBtn);
 
-    const tab = { url, iframe, tabBtn };
+    const tab = { url, iframe, tabBtn, history: [url], historyIndex: 0 };
     tabs.push(tab);
     switchTab(tabs.length - 1);
 }
@@ -100,7 +98,88 @@ function switchTab(index) {
     });
     activeTabIndex = index;
     homeScreen.style.display = 'none';
+    updateNavButtons();
 }
 
 function closeTab(tab) {
-    const index = tabs.
+    const index = tabs.indexOf(tab);
+    if (index === -1) return;
+    iframeContainer.removeChild(tab.iframe);
+    tabsBar.removeChild(tab.tabBtn);
+    tabs.splice(index, 1);
+
+    if (activeTabIndex === index) {
+        if (tabs.length > 0) switchTab(index > 0 ? index - 1 : 0);
+        else {
+            activeTabIndex = -1;
+            homeScreen.style.display = 'flex';
+        }
+    } else if (activeTabIndex > index) activeTabIndex--;
+    updateNavButtons();
+}
+
+function updateNavButtons() {
+    if (activeTabIndex === -1) {
+        backBtn.disabled = true;
+        forwardBtn.disabled = true;
+    } else {
+        const tab = tabs[activeTabIndex];
+        backBtn.disabled = tab.historyIndex <= 0;
+        forwardBtn.disabled = tab.historyIndex >= tab.history.length - 1;
+    }
+}
+
+function navigateCurrentTab(url) {
+    if (activeTabIndex === -1) {
+        createTab(url);
+        return;
+    }
+    const tab = tabs[activeTabIndex];
+    tab.history = tab.history.slice(0, tab.historyIndex + 1);
+    tab.history.push(url);
+    tab.historyIndex++;
+    tab.iframe.src = '/?url=' + encodeURIComponent(url);
+    tab.tabBtn.firstChild.textContent = url;
+    updateNavButtons();
+}
+
+newTabBtn.onclick = () => createTab('https://html.duckduckgo.com/html/');
+
+goBtn.addEventListener('click', () => {
+    const url = normalizeUrl(addressBar.value);
+    navigateCurrentTab(url);
+});
+
+addressBar.addEventListener('keypress', e => {
+    if (e.key === 'Enter') {
+        const url = normalizeUrl(addressBar.value);
+        navigateCurrentTab(url);
+    }
+});
+
+backBtn.onclick = () => {
+    if (activeTabIndex === -1) return;
+    const tab = tabs[activeTabIndex];
+    if (tab.historyIndex > 0) {
+        tab.historyIndex--;
+        const url = tab.history[tab.historyIndex];
+        tab.iframe.src = '/?url=' + encodeURIComponent(url);
+        tab.tabBtn.firstChild.textContent = url;
+        updateNavButtons();
+    }
+};
+
+forwardBtn.onclick = () => {
+    if (activeTabIndex === -1) return;
+    const tab = tabs[activeTabIndex];
+    if (tab.historyIndex < tab.history.length - 1) {
+        tab.historyIndex++;
+        const url = tab.history[tab.historyIndex];
+        tab.iframe.src = '/?url=' + encodeURIComponent(url);
+        tab.tabBtn.firstChild.textContent = url;
+        updateNavButtons();
+    }
+};
+</script>
+</body>
+</html>
