@@ -1,6 +1,5 @@
 const http = require('http');
 const https = require('https');
-const url = require('url');
 const fs = require('fs');
 const path = require('path');
 
@@ -22,57 +21,63 @@ const proxy = http.createServer((req, res) => {
     }
 
     // Parse the target URL from query parameter
-    const parsedUrl = url.parse(req.url, true);
-    const targetUrl = parsedUrl.query.url;
-
-    if (!targetUrl) {
-        res.writeHead(400, { 'Content-Type': 'text/html' });
-        res.end(`
-            <html>
-                <body>
-                    <h1>Simple Proxy Server</h1>
-                    <p>Usage: /?url=https://example.com</p>
-                    <form method="GET">
-                        <input type="text" name="url" placeholder="Enter URL" style="width: 300px"/>
-                        <button type="submit">Go</button>
-                    </form>
-                </body>
-            </html>
-        `);
-        return;
-    }
-
     try {
-        const target = url.parse(targetUrl);
+        const reqUrl = new URL(req.url, `http://${req.headers.host}`);
+        let targetUrl = reqUrl.searchParams.get('url');
+
+        if (!targetUrl) {
+            res.writeHead(400, { 'Content-Type': 'text/html' });
+            res.end(`
+                <html>
+                    <body>
+                        <h1>Simple Proxy Server</h1>
+                        <p>Usage: /?url=https://example.com</p>
+                        <form method="GET">
+                            <input type="text" name="url" placeholder="Enter URL" style="width: 300px"/>
+                            <button type="submit">Go</button>
+                        </form>
+                    </body>
+                </html>
+            `);
+            return;
+        }
+
+        // Ensure the URL has a protocol
+        if (!/^https?:\/\//i.test(targetUrl)) {
+            targetUrl = 'https://' + targetUrl;
+        }
+
+        const target = new URL(targetUrl);
         const protocol = target.protocol === 'https:' ? https : http;
 
         const options = {
             hostname: target.hostname,
             port: target.port || (target.protocol === 'https:' ? 443 : 80),
-            path: target.path,
+            path: target.pathname + target.search,
             method: 'GET',
             headers: {
                 'User-Agent': 'Mozilla/5.0',
             },
         };
 
-        console.log(`Fetching: ${targetUrl}`);
+        console.log(`Fetching: ${target.href}`);
 
         const backend_req = protocol.request(options, (backend_res) => {
-            // Clone headers and remove frame-blocking headers
             let headers = { ...backend_res.headers };
+
+            // Remove headers that block embedding (case-insensitive)
             for (let key in headers) {
                 if (/x-frame-options/i.test(key) || /content-security-policy/i.test(key)) {
                     delete headers[key];
                 }
             }
 
-            // Add CORS headers
+            // Add CORS header
             headers['Access-Control-Allow-Origin'] = '*';
 
             // Rewrite Location headers for redirects
             if (headers['location']) {
-                headers['location'] = `/??url=${encodeURIComponent(headers['location'])}`;
+                headers['location'] = `/?url=${encodeURIComponent(headers['location'])}`;
             }
 
             res.writeHead(backend_res.statusCode, headers);
