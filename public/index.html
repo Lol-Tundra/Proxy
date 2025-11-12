@@ -7,12 +7,15 @@
 <style>
 body { margin:0; font-family:sans-serif; }
 .browser-container { display:flex; flex-direction:column; height:100vh; }
-.browser-header { display:flex; padding:8px; background:#eee; gap:4px; align-items:center; }
-.address-bar { flex:1; padding:4px; }
-.go-btn { padding:4px 8px; cursor:pointer; }
-.tabs-bar { display:flex; gap:4px; padding:4px; background:#ddd; overflow-x:auto; }
-.tab-btn { padding:4px 8px; cursor:pointer; border:1px solid #999; border-radius:4px; background:#fff; }
-.tab-btn.active { background:#aaa; color:#fff; }
+.browser-header { display:flex; padding:8px; background:#f1f3f4; align-items:center; gap:4px; }
+.address-bar { flex:1; padding:6px 8px; border-radius:4px; border:1px solid #ccc; font-size:14px; }
+.go-btn { padding:6px 12px; cursor:pointer; border:none; border-radius:4px; background:#1a73e8; color:#fff; font-weight:500; }
+.go-btn:hover { background:#1765cc; }
+.tabs-bar { display:flex; align-items:center; padding:4px; background:#e8eaed; overflow-x:auto; }
+.tab-btn { padding:6px 12px; margin-right:2px; border-radius:8px 8px 0 0; border:1px solid #ccc; border-bottom:none; background:#e8eaed; cursor:pointer; white-space:nowrap; font-weight:500; }
+.tab-btn.active { background:#fff; border-bottom:1px solid #fff; }
+#newTabBtn { font-weight:bold; background:#e8eaed; border:1px solid #ccc; border-bottom:none; }
+#newTabBtn:hover { background:#d2d2d2; }
 .iframe-container { flex:1; position:relative; }
 .proxy-iframe { width:100%; height:100%; border:none; display:none; }
 .home-screen { display:flex; flex-direction:column; align-items:center; justify-content:center; flex:1; color:#888; }
@@ -24,7 +27,9 @@ body { margin:0; font-family:sans-serif; }
         <input type="text" id="addressBar" class="address-bar" placeholder="Enter URL or search term">
         <button id="goBtn" class="go-btn">Go</button>
     </div>
-    <div class="tabs-bar" id="tabsBar"></div>
+    <div class="tabs-bar" id="tabsBar">
+        <button id="newTabBtn" class="tab-btn">+</button>
+    </div>
     <div class="iframe-container" id="iframeContainer">
         <div class="home-screen" id="homeScreen">
             <div>🌐 Enter a URL to get started</div>
@@ -38,6 +43,7 @@ const goBtn = document.getElementById('goBtn');
 const tabsBar = document.getElementById('tabsBar');
 const iframeContainer = document.getElementById('iframeContainer');
 const homeScreen = document.getElementById('homeScreen');
+const newTabBtn = document.getElementById('newTabBtn');
 
 let tabs = [];
 let activeTabIndex = -1;
@@ -56,7 +62,6 @@ function createTab(url) {
     iframe.className = 'proxy-iframe';
     iframe.src = '/?url=' + encodeURIComponent(url);
 
-    // Error handling for blocked sites
     iframe.onerror = () => {
         iframe.style.display = 'none';
         alert('This site cannot be loaded in the proxy.');
@@ -68,7 +73,7 @@ function createTab(url) {
     tabBtn.className = 'tab-btn';
     tabBtn.textContent = url;
     tabBtn.onclick = () => switchTab(tabs.length);
-    tabsBar.appendChild(tabBtn);
+    tabsBar.insertBefore(tabBtn, newTabBtn);
 
     tabs.push({ url, iframe, tabBtn });
     switchTab(tabs.length - 1);
@@ -82,6 +87,11 @@ function switchTab(index) {
     activeTabIndex = index;
     homeScreen.style.display = 'none';
 }
+
+newTabBtn.onclick = () => {
+    const url = normalizeUrl(''); // opens Google home
+    createTab(url);
+};
 
 goBtn.addEventListener('click', () => {
     const url = normalizeUrl(addressBar.value);
