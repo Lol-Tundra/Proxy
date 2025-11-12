@@ -7,9 +7,12 @@
 <style>
 body { margin:0; font-family:sans-serif; }
 .browser-container { display:flex; flex-direction:column; height:100vh; }
-.browser-header { display:flex; padding:8px; background:#eee; gap:4px; }
+.browser-header { display:flex; padding:8px; background:#eee; gap:4px; align-items:center; }
 .address-bar { flex:1; padding:4px; }
 .go-btn { padding:4px 8px; cursor:pointer; }
+.tabs-bar { display:flex; gap:4px; padding:4px; background:#ddd; overflow-x:auto; }
+.tab-btn { padding:4px 8px; cursor:pointer; border:1px solid #999; border-radius:4px; background:#fff; }
+.tab-btn.active { background:#aaa; color:#fff; }
 .iframe-container { flex:1; position:relative; }
 .proxy-iframe { width:100%; height:100%; border:none; display:none; }
 .home-screen { display:flex; flex-direction:column; align-items:center; justify-content:center; flex:1; color:#888; }
@@ -18,46 +21,70 @@ body { margin:0; font-family:sans-serif; }
 <body>
 <div class="browser-container">
     <div class="browser-header">
-        <input type="text" id="addressBar" class="address-bar" placeholder="Enter URL">
+        <input type="text" id="addressBar" class="address-bar" placeholder="Enter URL or search term">
         <button id="goBtn" class="go-btn">Go</button>
     </div>
+    <div class="tabs-bar" id="tabsBar"></div>
     <div class="iframe-container">
         <div class="home-screen" id="homeScreen">
             <div>🌐 Enter a URL to get started</div>
         </div>
-        <iframe class="proxy-iframe" id="proxyFrame"></iframe>
     </div>
 </div>
 
 <script>
 const addressBar = document.getElementById('addressBar');
 const goBtn = document.getElementById('goBtn');
-const proxyFrame = document.getElementById('proxyFrame');
+const tabsBar = document.getElementById('tabsBar');
+const iframeContainer = document.querySelector('.iframe-container');
 const homeScreen = document.getElementById('homeScreen');
+
+let tabs = [];
+let activeTabIndex = -1;
 
 function normalizeUrl(input) {
     input = input.trim();
-    if (!input.includes('.') || input.includes(' ')) return input;
+    if (!input.includes('.') || input.includes(' ')) {
+        return 'https://www.google.com/search?q=' + encodeURIComponent(input);
+    }
     if (!input.match(/^https?:\/\//)) input = 'https://' + input;
     return input;
 }
 
-function loadUrl(url) {
-    url = normalizeUrl(url);
-    proxyFrame.src = `/?url=${encodeURIComponent(url)}`;
-    proxyFrame.style.display = 'block';
+function createTab(url) {
+    const iframe = document.createElement('iframe');
+    iframe.className = 'proxy-iframe';
+    iframe.src = url;
+    iframeContainer.appendChild(iframe);
+
+    const tabBtn = document.createElement('button');
+    tabBtn.className = 'tab-btn';
+    tabBtn.textContent = url;
+    tabBtn.onclick = () => switchTab(tabs.length);
+    tabsBar.appendChild(tabBtn);
+
+    tabs.push({ url, iframe, tabBtn });
+    switchTab(tabs.length - 1);
+}
+
+function switchTab(index) {
+    tabs.forEach((tab, i) => {
+        tab.iframe.style.display = i === index ? 'block' : 'none';
+        tab.tabBtn.classList.toggle('active', i === index);
+    });
+    activeTabIndex = index;
     homeScreen.style.display = 'none';
 }
 
 goBtn.addEventListener('click', () => {
-    const url = addressBar.value;
-    if (url) loadUrl(url);
+    const url = normalizeUrl(addressBar.value);
+    if (url) createTab(url);
 });
 
 addressBar.addEventListener('keypress', e => {
     if (e.key === 'Enter') {
-        const url = addressBar.value;
-        if (url) loadUrl(url);
+        const url = normalizeUrl(addressBar.value);
+        if (url) createTab(url);
     }
 });
 </script>
