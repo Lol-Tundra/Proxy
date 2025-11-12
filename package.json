@@ -1,7 +1,7 @@
 {
   "name": "web-proxy",
   "version": "1.0.0",
-  "description": "Full-featured web proxy with tabs and search",
+  "description": "Proxy browser with Chrome-like UI",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
