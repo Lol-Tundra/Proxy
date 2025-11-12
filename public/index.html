@@ -54,9 +54,8 @@ let activeTabIndex = -1;
 
 function normalizeUrl(input) {
     input = input.trim();
-    // If search query
     if (!input.includes('.') || input.includes(' ')) {
-        return 'https://html.duckduckgo.com/html/' + encodeURIComponent(input);
+        return 'https://html.duckduckgo.com/?q=' + encodeURIComponent(input);
     }
     if (!input.match(/^https?:\/\//)) input = 'https://' + input;
     return input;
@@ -66,8 +65,6 @@ function createTab(url) {
     const iframe = document.createElement('iframe');
     iframe.className = 'proxy-iframe';
     iframe.src = '/?url=' + encodeURIComponent(url);
-    iframe.dataset.history = JSON.stringify([url]);
-    iframe.dataset.index = '0';
 
     iframeContainer.appendChild(iframe);
 
@@ -143,7 +140,7 @@ function navigateCurrentTab(url) {
     updateNavButtons();
 }
 
-newTabBtn.onclick = () => createTab('https://html.duckduckgo.com/html/');
+newTabBtn.onclick = () => createTab('https://html.duckduckgo.com/');
 
 goBtn.addEventListener('click', () => {
     const url = normalizeUrl(addressBar.value);
