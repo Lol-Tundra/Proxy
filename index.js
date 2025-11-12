@@ -7,7 +7,7 @@ const httpProxy = require('http-proxy');
 const PORT = process.env.PORT || 8080;
 const proxy = httpProxy.createProxyServer({ changeOrigin: true });
 
-// Stream content directly for better media playback
+// Stream content for videos/audio
 proxy.on('proxyRes', (proxyRes, req, res) => {
     const headers = proxyRes.headers;
     for (let key in headers) {
@@ -20,7 +20,7 @@ proxy.on('proxyRes', (proxyRes, req, res) => {
     proxyRes.pipe(res);
 });
 
-// Make requests look like a browser
+// Set User-Agent
 proxy.on('proxyReq', (proxyReq, req) => {
     proxyReq.setHeader(
         'User-Agent',
@@ -50,14 +50,10 @@ const server = http.createServer((req, res) => {
             return res.end('Missing URL parameter');
         }
 
+        // If input starts with https:// or http://, load directly
         if (!/^https?:\/\//i.test(targetUrl)) {
-            // Treat input as DuckDuckGo search
-            targetUrl = 'https://html.duckduckgo.com/?q=' + encodeURIComponent(targetUrl);
-        }
-
-        // Redirect known Google URLs to DuckDuckGo to avoid blocks
-        if (/google\.com/.test(targetUrl) || /youtube\.com/.test(targetUrl)) {
-            targetUrl = 'https://html.duckduckgo.com/?q=' + encodeURIComponent(targetUrl);
+            // Treat as Google search
+            targetUrl = 'https://www.google.com/search?q=' + encodeURIComponent(targetUrl);
         }
 
         proxy.web(req, res, { target: targetUrl }, err => {
