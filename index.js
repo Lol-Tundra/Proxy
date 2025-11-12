@@ -4,8 +4,6 @@ const path = require('path');
 const httpProxy = require('http-proxy');
 
 const PORT = process.env.PORT || 8080;
-
-// Create a proxy server
 const proxy = httpProxy.createProxyServer({ changeOrigin: true });
 
 // Remove headers that block iframe embedding
@@ -19,7 +17,6 @@ proxy.on('proxyRes', function(proxyRes, req, res) {
     headers['Access-Control-Allow-Origin'] = '*';
 });
 
-// Create main server
 const server = http.createServer((req, res) => {
     // Serve frontend
     if (req.url === '/' || req.url.startsWith('/index.html')) {
@@ -34,25 +31,41 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // Get target URL from query parameter
     try {
         const reqUrl = new URL(req.url, `http://${req.headers.host}`);
         let targetUrl = reqUrl.searchParams.get('url');
+
         if (!targetUrl) {
             res.writeHead(400);
             return res.end('Missing URL parameter');
         }
 
-        // Ensure the URL has a protocol
         if (!/^https?:\/\//i.test(targetUrl)) {
             targetUrl = 'https://' + targetUrl;
         }
 
-        // Proxy the request
         proxy.web(req, res, { target: targetUrl }, err => {
             console.error('Proxy error:', err);
             res.writeHead(500);
             res.end('Proxy error: ' + err.message);
+        });
+
+        // Optional: rewrite <a href> links to homepage
+        proxy.on('proxyRes', function(proxyRes, req, res) {
+            let body = '';
+            proxyRes.on('data', chunk => body += chunk.toString());
+            proxyRes.on('end', () => {
+                try {
+                    const targetDomain = new URL(targetUrl).origin;
+                    body = body.replace(
+                        /<a\s+[^>]*href=["']([^"']+)["']/gi,
+                        (match) => match.replace(/href=["'][^"']+["']/, `href="${targetDomain}"`)
+                    );
+                    res.end(body);
+                } catch (e) {
+                    res.end(body);
+                }
+            });
         });
 
     } catch (err) {
@@ -61,6 +74,4 @@ const server = http.createServer((req, res) => {
     }
 });
 
-server.listen(PORT, () => {
-    console.log(`Proxy server running on port ${PORT}`);
-});
+server.listen(PORT, () => console.log(`Proxy running on port ${PORT}`));
