@@ -29,7 +29,6 @@ proxy.on('proxyReq', (proxyReq, req) => {
 });
 
 const server = http.createServer((req, res) => {
-    // Serve frontend
     if (req.url === '/' || req.url.startsWith('/index.html')) {
         fs.readFile(path.join(__dirname, 'public', 'index.html'), (err, data) => {
             if (err) {
