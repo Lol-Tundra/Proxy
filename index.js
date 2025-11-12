@@ -7,7 +7,6 @@ const httpProxy = require('http-proxy');
 const PORT = process.env.PORT || 8080;
 const proxy = httpProxy.createProxyServer({ changeOrigin: true });
 
-// Stream content for videos/audio
 proxy.on('proxyRes', (proxyRes, req, res) => {
     const headers = proxyRes.headers;
     for (let key in headers) {
@@ -20,7 +19,6 @@ proxy.on('proxyRes', (proxyRes, req, res) => {
     proxyRes.pipe(res);
 });
 
-// Set User-Agent
 proxy.on('proxyReq', (proxyReq, req) => {
     proxyReq.setHeader(
         'User-Agent',
@@ -50,9 +48,8 @@ const server = http.createServer((req, res) => {
             return res.end('Missing URL parameter');
         }
 
-        // If input starts with https:// or http://, load directly
+        // Only Google search if input is NOT a proper URL
         if (!/^https?:\/\//i.test(targetUrl)) {
-            // Treat as Google search
             targetUrl = 'https://www.google.com/search?q=' + encodeURIComponent(targetUrl);
         }
 
